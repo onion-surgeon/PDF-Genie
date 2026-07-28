@@ -10,7 +10,8 @@ from app.core.db.base import Base
 
 import asyncio
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
+from app.models.pdf import PDF
+from app.models.chunks import Chunk
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
