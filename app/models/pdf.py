@@ -17,6 +17,7 @@ class PDF(Base):
     pdfid: Mapped[int] = mapped_column(Integer, primary_key=True, index= True)
     pdfname: Mapped[str] = mapped_column(String, nullable= False,)
     uuid: Mapped[str] = mapped_column(Uuid, nullable= False, unique= True)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=True, unique=True)
     storage_path: Mapped[str] = mapped_column(String, nullable= False)
     status: Mapped[Status] = mapped_column(SQEnum(Status), nullable= False, index= True)
     failure_reason: Mapped[str] = mapped_column(String, nullable= True)
