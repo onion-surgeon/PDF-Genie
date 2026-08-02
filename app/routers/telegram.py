@@ -1,32 +1,35 @@
 from typing import Annotated
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db  
-from app.models.pdf import PDF, Status
-from fastapi import Depends
-
+from app.core.db.session import get_db
 from app.services.pdf_service import PDFService
+from app.services.telegram_service import TelegramWebhookDispatcher
+from app.services.user_service import UserService
 
 telegram_router = APIRouter()
 
 
-@telegram_router.post("/upload")
-async def upload_pdf(
+@telegram_router.post("/webhook")
+async def telegram_webhook(
+    request: Request,
+    dispatcher: Annotated[
+        TelegramWebhookDispatcher,
+        Depends(TelegramWebhookDispatcher),
+    ],
     pdf_service: Annotated[PDFService, Depends(PDFService)],
-    file: UploadFile = File(...),
+    user_service: Annotated[UserService, Depends(UserService)],
     db: AsyncSession = Depends(get_db),
 ):
+    update = await request.json()
 
-    if file.content_type != "application/pdf":
-        raise HTTPException(status_code=400, detail="File must be a PDF")
+    await dispatcher.dispatch(
+        update=update,
+        db=db,
+        pdf_service=pdf_service,
+        user_service=user_service,
+    )
 
-    try:
-        await pdf_service.write_pdf(db, file)
-    except IntegrityError:
-        raise HTTPException(status_code=409, detail="This PDF has already been uploaded")
-    
+    return {"ok": True}
 
-    return "File uploaded"

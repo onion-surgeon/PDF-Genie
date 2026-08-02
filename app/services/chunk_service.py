@@ -19,7 +19,7 @@ class ChunkService:
         await self.store_chunks(db, pdf, chunks)
 
     async def load_chunks(self, db:AsyncSession, pdf_id:int) -> list[Chunk]:
-        query = select(Chunk).where(PDF.pdfid == pdf_id)
+        query = select(Chunk).where(Chunk.pdfid == pdf_id)
         pdf = await db.execute(query)
         return pdf.scalars().all()
     

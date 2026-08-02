@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Integer, Boolean, Uuid, DateTime, String, Enum as SQEnum, func
+from sqlalchemy import ForeignKey, Integer, Boolean, Uuid, DateTime, String, Enum as SQEnum, func
 from datetime import datetime
 from enum import Enum
 
@@ -15,6 +15,7 @@ class Status(str, Enum):
 class PDF(Base):
     __tablename__ = "pdfs"
     pdfid: Mapped[int] = mapped_column(Integer, primary_key=True, index= True)
+    userid: Mapped[int] = mapped_column(Integer, ForeignKey("users.userid"), index= True)
     pdfname: Mapped[str] = mapped_column(String, nullable= False,)
     uuid: Mapped[str] = mapped_column(Uuid, nullable= False, unique= True)
     content_sha256: Mapped[str] = mapped_column(String(64), nullable=True, unique=True)

@@ -16,37 +16,46 @@ class PDFService:
     def __init__(self):
         pass
 
-    async def write_pdf(self, db: AsyncSession, file: bytes):
+    async def write_pdf(self, db: AsyncSession, file: bytes, filename: str, user_id: int):
         file_uuid = uuid_lib.uuid4()
         folder_path = settings.UPLOAD_DIR / str(file_uuid)
-        storage_path = folder_path / file.filename
-        contents = await file.read()
+        storage_path = folder_path / filename
+        contents = file
         content_sha256 = hashlib.sha256(contents).hexdigest()
         new_pdf = PDF(
-            pdfname=file.filename,
+            pdfname=filename,
             uuid=file_uuid,
             content_sha256=content_sha256,
             storage_path=str(storage_path),
             status=Status.UPLOADED,
+            userid = user_id
         )
 
         try:
             db.add(new_pdf)
             await db.commit()
             await db.refresh(new_pdf)
+
+            folder_path.mkdir(parents=True, exist_ok=True)
+            with open(storage_path, "wb") as f:
+                f.write(contents)
+
         except IntegrityError as e:
             await db.rollback()
             raise e
+        
+        except Exception as e:
+            await db.rollback()
 
-        folder_path.mkdir(parents=True, exist_ok=True)
-        with open(storage_path, "wb") as f:
-            f.write(contents)
+            if storage_path.exists():
+                storage_path.unlink()    
+                raise e
 
         
-        return True
+        return new_pdf.pdfid
 
-    async def load_pdf(self,db:AsyncSession,pdf_id):
+    async def load_pdf(self,db:AsyncSession,pdf_id) -> PDF:
         query = select(PDF).where(PDF.pdfid == pdf_id)
-        result = await db.exectue(query)
+        result = await db.execute(query)
         return result.scalars().first()
     

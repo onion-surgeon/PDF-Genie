@@ -8,10 +8,10 @@ from app.models.chunks import Chunk
 
 class RetrievalService():
     
-    async def retrieve(self,db: AsyncSession,pdf_id: int,query_embedding: list[float],
+    async def retrieve(self,db: AsyncSession,query_embedding: list[float],
         top_k: int = 5,) -> list[Chunk]:
 
-        stmt = (select(Chunk).where(Chunk.pdfid == pdf_id).order_by(
+        stmt = (select(Chunk).order_by(
                 Chunk.embedding.cosine_distance(query_embedding)
             ).limit(top_k)
         )
