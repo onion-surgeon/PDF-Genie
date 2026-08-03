@@ -11,7 +11,6 @@ async def send_message(chat_id: int, text: str):
             json={
                 "chat_id": chat_id,
                 "text": text,
-                "parse_mode": "MarkdownV2"
             },
         )
 
