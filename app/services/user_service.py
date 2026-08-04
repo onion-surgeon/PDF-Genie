@@ -11,9 +11,9 @@ class UserService:
         query = select(User).where(User.telegram_id == t_id)
         result = await db.execute(query)
         user = result.scalars().first()
-        return user.userid
+        return user.userid if user else None
     
-    async def check_user_pdf_exists(self, db: AssertionError,user_id:int):
+    async def check_user_pdf_exists(self, db: AsyncSession,user_id:int):
         query = select(PDF).where(PDF.userid == user_id)
-        id = await db.execute(query)
-        return id.scalars().first()
+        result = await db.execute(query)
+        return result.scalars().first()
