@@ -19,6 +19,9 @@ services:
       REDIS_URL: redis://redis:6379/0 
     depends_on:
       - redis
+    volumes:
+      - ./app/storage:/app/app/storage
+
 
   worker:
     image: genie_backend_image
@@ -31,6 +34,8 @@ services:
       REDIS_URL: redis://redis:6379/0
     depends_on:
       - redis
+    volumes:
+      - ./app/storage:/app/app/storage
 
   
 volumes:
