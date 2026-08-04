@@ -49,7 +49,7 @@ class PDFService:
 
             if storage_path.exists():
                 storage_path.unlink()    
-                raise e
+            raise e
 
         
         return new_pdf.pdfid
