@@ -21,13 +21,6 @@ logger = logging.getLogger(__name__)
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-
-@celery_app.task(
-    bind=True,
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    retry_kwargs={"max_retries": 3},
-)
 def chunker_orchestrator_task(self, pdf_id: int):
     pdf_service = PDFService()
     chunk_service = ChunkService()
@@ -68,22 +61,27 @@ def output_orchestrator_task(self, chat_id: int, user_id, query: str):
         chunks = run_async_with_db(retrieval_service.retrieve, user_id, query_embedding)
         output = asyncio.run(output_service.generate_llm_output(query,chunks))
         asyncio.run(send_message(chat_id, output))
-    except:
-        if self.request.retires >= self.max_retries:
+    except Exception as e:
+        if self.request.retries >= self.max_retries:
+            logger.error(f"Failed to process question for chatid: {chat_id} | {str(e)}")
             asyncio.run(notify_user_safe(chat_id, "Couldn't process your question right now. Please retry 🔄"))
+        raise
 
 @celery_app.task
 def chunk_embed_pipeline(pdf_id: int, chat_id: int):
     chain(
         chunker_orchestrator_task.si(pdf_id),
         embedding_orchestrator_task.si(pdf_id),
-        notify_user_task.si(chat_id)
-    ).on_error(error_handler.si(chat_id)).delay()
+        notify_user_task.si(chat_id, "File successfully uploaded ✅")
+    ).on_error(error_handler.s(chat_id)).delay()
 
 @celery_app.task
-def error_handler(chat_id : int):
-    asyncio.run(notify_user_safe(chat_id, "File upload failed ❌"))
+def error_handler(request, chat_id : int): 
+    error_msg = ""
+    if isinstance(request.exception, (NoExtractableTextFound, PDFNotFound)):
+        error_msg = str(request.exception)
+    asyncio.run(notify_user_safe(chat_id, f"File upload failed ❌\n{error_msg}"))
 
 @celery_app.task
-def notify_user_task(chat_id : int):
-    asyncio.run(notify_user_safe(chat_id, "File successfully uploaded ✅"))
+def notify_user_task(chat_id : int, msg: str):
+    asyncio.run(notify_user_safe(chat_id, msg))
