@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.models.pdf import PDF
 from app.models.users import User
 from app.services.pdf_service import PDFService
-from app.services.telegram_api import download_file_telegram, send_message
+from app.services.telegram_api import download_file_telegram, notify_user_safe, send_message
 from app.services.user_service import UserService
 from app.workers.tasks import chunk_embed_pipeline, output_orchestrator_task
 from app.exceptions.types import *
@@ -105,8 +105,3 @@ async def check_user_pdf_exists(db: AssertionError,user_id:int):
     id = await db.execute(query)
     return id.scalars().first()
 
-async def notify_user_safe(chat_id: int, text: str):
-    try:
-        await send_message(chat_id, text)
-    except Exception as e:
-        logger.error(f"Failed to notify chat {chat_id}: {e}", exc_info=True)

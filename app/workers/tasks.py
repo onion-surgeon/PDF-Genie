@@ -8,7 +8,7 @@ from app.services.llm_service import GeminiLLM
 from app.services.pdf_service import PDFService
 from app.services.retrieval_service import RetrievalService
 from app.services.telegram_api import send_message
-from app.services.telegram_service import notify_user_safe
+from app.services.telegram_api import notify_user_safe
 from app.utils.celery_runner import run_async_with_db
 from app.workers.celery import celery_app
 from app.exceptions.types import *

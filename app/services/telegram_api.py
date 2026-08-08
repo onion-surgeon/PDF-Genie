@@ -1,8 +1,10 @@
-import httpx
+import httpx, logging
 from httpx import Response
 from tenacity import retry, retry_if_exception_type, stop_after_attempt
 from app.core.config import settings
 from app.exceptions.types import TelegramAPIError 
+
+logger = logging.getLogger(__name__)
 
 @retry(
     stop=stop_after_attempt(3),
@@ -39,3 +41,9 @@ async def download_file_telegram(file_id: str) -> bytes:
         file_response = await request_url(client, "GET", file_url)
 
         return file_response.content 
+
+async def notify_user_safe(chat_id: int, text: str):
+    try:
+        await send_message(chat_id, text)
+    except Exception as e:
+        logger.error(f"Failed to notify chat {chat_id}: {e}", exc_info=True)
