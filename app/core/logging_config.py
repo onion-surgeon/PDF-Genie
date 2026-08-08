@@ -14,3 +14,6 @@ def setup_logging():
             logging.FileHandler(LOG_DIR / "app.log")
         ]
     )
+
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
