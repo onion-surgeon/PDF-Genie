@@ -1,16 +1,18 @@
 from abc import ABC, abstractmethod
-import asyncio
+import asyncio, logging
 
 from openai import AsyncOpenAI
 from google import genai
 from google.genai import types
 from sqlalchemy import select, update
 from app.core.config import settings
+from app.exceptions.types import NoExtractableTextFound
 from app.models.chunks import Chunk, ChunkStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 BATCH_SIZE = 10
+logger = logging.getLogger(__name__)
 
 class EmbeddingService(ABC):
     
@@ -35,13 +37,13 @@ class GeminiEmbedding(EmbeddingService):
         result = await db.execute(
             select(Chunk).where(
                 Chunk.pdfid == pdf_id,
-                Chunk.status == ChunkStatus.PENDING,
+                Chunk.status.in_([ChunkStatus.PENDING, ChunkStatus.FAILED]),
             )
         )
         chunks = result.scalars().all()
 
         if not chunks:
-            return
+            raise NoExtractableTextFound(pdf_id)
 
         batch = []
         try:
@@ -70,6 +72,7 @@ class GeminiEmbedding(EmbeddingService):
                 await asyncio.sleep(10)
 
         except Exception as e:
+            logger.error(f"Creating embeddings for chunks of pdf {pdf_id} failed : {str(e)}", exc_info=True)
             await db.rollback()
             for chunk in batch:
                 chunk.status = ChunkStatus.FAILED
@@ -79,10 +82,16 @@ class GeminiEmbedding(EmbeddingService):
         
     async def create_query_embeddings(self, text: str) -> list[float]:
 
-        response = await self.client.aio.models.embed_content(
+        try:
+            response = await self.client.aio.models.embed_content(
                 model="gemini-embedding-2",
                 contents= text,
                 config=types.EmbedContentConfig(output_dimensionality=768)
             )
     
-        return response.embeddings[0].values
+            return response.embeddings[0].values
+
+        except Exception as e:
+            logger.error(f"Gemini API call to create embeddign failed {str(e)}")
+            raise
+

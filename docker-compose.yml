@@ -21,6 +21,7 @@ services:
       - redis
     volumes:
       - ./app/storage:/app/app/storage
+      - ./app/logs:/app/app/logs 
 
 
   worker:
@@ -36,6 +37,7 @@ services:
       - redis
     volumes:
       - ./app/storage:/app/app/storage
+      - ./app/logs:/app/app/logs 
 
   
 volumes:

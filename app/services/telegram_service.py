@@ -1,4 +1,4 @@
-import httpx
+import httpx, logging
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -11,7 +11,9 @@ from app.services.pdf_service import PDFService
 from app.services.telegram_api import download_file_telegram, send_message
 from app.services.user_service import UserService
 from app.workers.tasks import chunk_embed_pipeline, output_orchestrator_task
+from app.exceptions.types import *
 
+logger = logging.getLogger(__name__)
 
 class TelegramWebhookDispatcher:
     async def dispatch(self, update: dict, db: AsyncSession, pdf_service: PDFService, 
@@ -49,7 +51,7 @@ class TelegramWebhookDispatcher:
         if not await user_service.check_user_pdf_exists(db, user_id):
             await send_message(chat_id, "Upload a document first")
         else:
-            output_orchestrator_task.delay(chat_id, text)
+            output_orchestrator_task.delay(chat_id, user_id, text)
             
 
     async def handle_document(self, chat_id: int, t_id: int, document: dict, db: AsyncSession, 
@@ -60,7 +62,7 @@ class TelegramWebhookDispatcher:
         mime_type = document.get("mime_type")
 
         if mime_type != "application/pdf":
-            return
+            raise FileTypeError(mime_type) 
 
         file_bytes = await download_file_telegram(file_id)
 
@@ -76,19 +78,11 @@ class TelegramWebhookDispatcher:
                 file_name,
                 userid
             )
-            
-            chunk_embed_pipeline.delay(pdf_id)
+            notify_user_safe(chat_id, "File upload started")
+            chunk_embed_pipeline.delay(pdf_id, chat_id)
 
-        except IntegrityError:
-            raise HTTPException(
-                status_code=409,
-                detail="This PDF has already been uploaded",
-            )
         except Exception as e:
-            raise HTTPException(
-                status_code=409,
-                detail="Unable to store PDF",
-            )
+            raise e
             
 
 async def check_telegram_user_exists(db: AsyncSession, t_id : int) -> int | None :
@@ -110,3 +104,9 @@ async def check_user_pdf_exists(db: AssertionError,user_id:int):
     query = select(PDF).where(PDF.userid == user_id)
     id = await db.execute(query)
     return id.scalars().first()
+
+async def notify_user_safe(chat_id: int, text: str):
+    try:
+        await send_message(chat_id, text)
+    except Exception as e:
+        logger.error(f"Failed to notify chat {chat_id}: {e}", exc_info=True)

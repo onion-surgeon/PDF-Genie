@@ -1,3 +1,5 @@
+import logging
+
 from abc import ABC, abstractmethod
 
 from app.core.config import settings
@@ -5,7 +7,7 @@ from google import genai
 from google.genai import types
 from app.models.chunks import Chunk
 
-
+logger = logging.getLogger(__name__)
 class LLMService(ABC):
 
     system_instruction = '''You are answering questions about a PDF.
@@ -49,12 +51,16 @@ class GeminiLLM(LLMService):
             {query}
             """
 
+        try:
+            response = await self.client.aio.models.generate_content(
+                model="gemini-3.1-flash-lite",
+                contents= prompt,
+            )
 
-        response = await self.client.aio.models.generate_content(
-            model="gemini-3.1-flash-lite",
-            contents= prompt,
-        )
+            result = response.text
 
-        result = response.text
+            return result
 
-        return result
+        except Exception as e:
+            logger.warning(f"Gemini chunks organiser has failed : {str(e)}")
+            raise
