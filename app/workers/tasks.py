@@ -76,10 +76,10 @@ def chunk_embed_pipeline(pdf_id: int, chat_id: int):
     ).on_error(error_handler.s(chat_id)).delay()
 
 @celery_app.task
-def error_handler(request, chat_id : int): 
+def error_handler(request, exc, traceback, chat_id : int): 
     error_msg = ""
-    if isinstance(request.exception, (NoExtractableTextFound, PDFNotFound)):
-        error_msg = str(request.exception)
+    if isinstance(exc, (NoExtractableTextFound, PDFNotFound)):
+        error_msg = str(exc)
     asyncio.run(notify_user_safe(chat_id, f"File upload failed ❌\n{error_msg}"))
 
 @celery_app.task
