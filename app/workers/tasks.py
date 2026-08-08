@@ -70,16 +70,20 @@ def output_orchestrator_task(self, chat_id: int, user_id, query: str):
         asyncio.run(send_message(chat_id, output))
     except:
         if self.request.retires >= self.max_retries:
-            asyncio.run(notify_user_safe(chat_id, "Couldn't process your question right now. Please retry"))
+            asyncio.run(notify_user_safe(chat_id, "Couldn't process your question right now. Please retry 🔄"))
 
 @celery_app.task
 def chunk_embed_pipeline(pdf_id: int, chat_id: int):
     chain(
         chunker_orchestrator_task.si(pdf_id),
         embedding_orchestrator_task.si(pdf_id),
-        asyncio.run(notify_user_safe(chat_id, "File successfully uploaded"))
+        notify_user_task.si(chat_id)
     ).on_error(error_handler.si(chat_id)).delay()
 
 @celery_app.task
 def error_handler(chat_id : int):
-    asyncio.run(notify_user_safe(chat_id, "File upload failed"))
+    asyncio.run(notify_user_safe(chat_id, "File upload failed ❌"))
+
+@celery_app.task
+def notify_user_task(chat_id : int):
+    asyncio.run(notify_user_safe(chat_id, "File successfully uploaded ✅"))

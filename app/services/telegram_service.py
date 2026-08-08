@@ -78,7 +78,7 @@ class TelegramWebhookDispatcher:
                 file_name,
                 userid
             )
-            notify_user_safe(chat_id, "File upload started")
+            await notify_user_safe(chat_id, "File upload started ⏳")
             chunk_embed_pipeline.delay(pdf_id, chat_id)
 
         except Exception as e:
