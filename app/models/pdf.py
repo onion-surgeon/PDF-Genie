@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import ForeignKey, Integer, Boolean, Uuid, DateTime, String, Enum as SQEnum, func
+from sqlalchemy import ForeignKey, Integer, Boolean, UniqueConstraint, Uuid, DateTime, String, Enum as SQEnum, func
 from datetime import datetime
 from enum import Enum
 
@@ -18,10 +18,13 @@ class PDF(Base):
     userid: Mapped[int] = mapped_column(Integer, ForeignKey("users.userid"), index= True)
     pdfname: Mapped[str] = mapped_column(String, nullable= False,)
     uuid: Mapped[str] = mapped_column(Uuid, nullable= False, unique= True)
-    content_sha256: Mapped[str] = mapped_column(String(64), nullable=True, unique=True)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=True,)
     storage_path: Mapped[str] = mapped_column(String, nullable= False)
     status: Mapped[Status] = mapped_column(SQEnum(Status), nullable= False, index= True)
     failure_reason: Mapped[str] = mapped_column(String, nullable= True)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, nullable= False, server_default= func.now())
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, nullable= False, server_default= func.now(), onupdate= func.now())
 
+    __table_args__ = (
+        UniqueConstraint("userid", "content_sha256", name="unique_user_pdf_hash"),
+    )    
