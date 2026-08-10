@@ -8,6 +8,6 @@ COPY pyproject.toml uv.lock ./
 
 RUN uv pip install --system --no-cache --compile -r pyproject.toml
 
-COPY ./app /app/app
+COPY . .
 
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8010"]

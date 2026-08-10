@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 async def request_url(client: httpx.AsyncClient, method: str, url: str, **kwargs) -> Response:
     response = await client.request(method, url, **kwargs)
     try:
+        logger.warning(f"HTTP request made: {method} {url} {kwargs}")
         response.raise_for_status()
     except httpx.HTTPStatusError as e:
         data = e.response.json()
