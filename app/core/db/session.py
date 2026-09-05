@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=True,
+    pool_pre_ping=True,
     connect_args={"ssl": True,}         
 )
 
